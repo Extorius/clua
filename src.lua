@@ -1,76 +1,11 @@
 local clua = {}
+local env = getfenv and getfenv() or _ENV
 function clua.raiseerror(...)
     return error(string.format(...))
 end
-function clua.serialize(data, var, indents)
-    data = (type(data) == 'table' and data or table.pack(data))
-    var = var or "local Serialized = "
-    indents = indents or 1
 
-    local function SerializeString(str)
-        local r = ''
-        local sq = str:match("'")
-        local dq = str:match('"')
-        local db = str:match("%[%[") or str:match("]]")
-
-        if (not sq and not dq) or (sq and not dq) then
-            r = r .. '"' .. str .. '"'
-        elseif (dq and not sq) then
-            r = r .. "'" .. str .. "'"
-        else
-            r = r .. '"' .. str:gsub('"', '\\"') .. '"'
-        end
-
-        return r
-    end
-
-    local r = var .. '{\n'
-    local iteration = 0
-
-    for i, v in pairs(data) do
-        iteration = iteration + 1
-        data = setmetatable(data, {
-            __len = function()
-                local len = 0
-                for i, v in pairs(data) do
-                    len = len + 1
-                end
-
-                return len
-            end
-        })
-
-        local valuetype = type(v)
-        local indextype = type(i)
-
-        local index = string.rep('\t', indents) .. "["
-        if indextype == 'string' then
-            index = index .. SerializeString(i)
-        elseif indextype == 'number' then
-            index = index .. tostring(i)
-        end
-
-        index = index .. '] = '
-        r = r .. index
-
-        if valuetype == 'string' then
-            r = r .. SerializeString(v)
-        elseif valuetype == 'number' then
-            r = r .. tostring(v)
-        elseif valuetype == 'table' then
-            r = r .. Serialize(v, '', indents + 1)
-        end
-
-        if iteration ~= #data then
-            r = r .. ',\n'
-        end
-    end
-
-    r = r .. '\n' .. string.rep('\t', indents - 1) .. '}'
-    return r
-end
 function clua.build(...)
-    local args = {...}
+    local args = { ... }
     args = args[1]
 
     local name = args.name
@@ -79,9 +14,9 @@ function clua.build(...)
 
     local old
     if library then
-        old = oldenv[library][name]
+        old = env[library][name]
     else
-        old = oldenv[name]
+        old = env[name]
     end
 
     local build = {
@@ -321,8 +256,6 @@ clua.build({
             end
         elseif type(v) == 'string' then
             return v
-        else
-            return load('return ' .. require("serializer")(select(2, ...), ''))()
         end
     end
 })
