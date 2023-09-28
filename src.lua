@@ -85,7 +85,7 @@ function clua.build(...)
         end,
         __call = call,
         __metatable = {},
-        __name = oldenv['tostring'](call)
+        __name = env['tostring'](call)
     }
 
     setmetatable(build, build)
